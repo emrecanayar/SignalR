@@ -1,0 +1,72 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Scripts{
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script type="text/javascript">
+
+        $(document).ready(() => {
+            var connection = new signalR.HubConnectionBuilder().configureLogging(signalR.LogLevel.Information).withAutomaticReconnect().withUrl("https://localhost:7075/MyHub").build();
+
+            function statusShow() {
+                $("#connectionStatus").text(connection.state);
+            }
+
+      
+
+            connection.start().then(() => {
+                statusShow();
+                connection.invoke("GetMessages");
+            }).catch((error) => { console.log(error) });
+
+            connection.on("ReceiveClientCount", (clientCount) => {
+                $("#clientCount").text(clientCount);
+            });
+
+            $("#btnMessageSave").click(() => {
+                connection.invoke("SendMessage", $("#txtName").val()).catch((error) => console.log(error));
+            })
+
+            connection.on("ReceiveMessage", (message) => {
+                $("#messagesList").append(`<li class="list-group-item">${message} </li>`)
+            })
+
+            connection.on("Notification", (notification) => {
+                $("#notification").html(`<div class="alert alert-s">${notification} </div>`)
+            });
+
+            connection.on("ReceiveMessages", (messages) => {
+                $("#messagesList").empty();
+
+                messages.forEach((item, index) => {
+                    $("#messagesList").append(`<li class="list-group-item">${item} </li>`)
+                })
+            });
+        })
+
+
+    </script>
+}
+
+<div class="row">
+
+    <div class="col-md-8 offset-2">
+        <input class="form-control" type="text" id="txtName" />
+        <hr />
+        <button class="btn btn-primary" id="btnMessageSave">Mesaj Gönder</button>
+        <div class="alert alert-info">
+            Bağlantı Durumu : <strong id="connectionStatus"></strong>
+        </div>
+        <div class="alert alert-info">
+            Aktif Client Sayısı : <strong id="clientCount"></strong>
+        </div>
+        <div class="alert alert-warning">
+            Notification (Bildirim) : <strong id="notification"></strong>
+        </div>
+    </div>
+    <div class="col-md-8 offset-2">
+        <ul class="list-group" id="messagesList"></ul>
+    </div>
+</div>
